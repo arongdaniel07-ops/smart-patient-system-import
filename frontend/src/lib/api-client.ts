@@ -1,10 +1,24 @@
 import { ApiResponse } from '../types';
 
-const RAW_API_URL = import.meta.env.VITE_API_URL || '';
-const API_BASE = RAW_API_URL 
-  ? (RAW_API_URL.endsWith('/api') ? RAW_API_URL : `${RAW_API_URL.replace(/\/$/, '')}/api`) 
-  : '/api';
-
+function buildUrl(endpoint: string): string {
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const rawApiUrl = ((import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '') as string).trim();
+  
+  if (rawApiUrl) {
+    // Strip trailing slashes and any trailing /api to prevent duplication
+    const base = rawApiUrl.replace(/\/+$/, '').replace(/\/api$/, '');
+    if (cleanEndpoint.startsWith('/api/')) {
+      return `${base}${cleanEndpoint}`;
+    }
+    return `${base}/api${cleanEndpoint}`;
+  }
+  
+  // Local development / same-origin proxy
+  if (cleanEndpoint.startsWith('/api/')) {
+    return cleanEndpoint;
+  }
+  return `/api${cleanEndpoint}`;
+}
 
 export class ApiError extends Error {
   status: number;
@@ -42,10 +56,22 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
     headers.set('Content-Type', 'application/json');
   }
 
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  const url = buildUrl(endpoint);
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: options.method || 'GET',
+      ...options,
+      headers,
+    });
+  } catch (err: any) {
+    throw new ApiError(
+      'Unable to connect to the backend server. The service may be starting up, sleeping, or unreachable.',
+      0,
+      err
+    );
+  }
 
   if (response.status === 204) {
     return {} as T;
@@ -69,7 +95,14 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
   }
 
   if (!response.ok) {
-    const errorMsg = body?.message || `Request failed with status ${response.status}`;
+    let errorMsg = body?.message;
+    if (!errorMsg) {
+      if (response.status === 405) {
+        errorMsg = 'Backend API is not connected or method not allowed (HTTP 405). If running in production, please configure VITE_API_URL in your Vercel project environment variables.';
+      } else {
+        errorMsg = `Request failed with status ${response.status}`;
+      }
+    }
     throw new ApiError(errorMsg, response.status, body);
   }
 

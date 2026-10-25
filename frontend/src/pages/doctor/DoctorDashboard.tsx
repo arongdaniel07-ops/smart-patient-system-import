@@ -42,6 +42,7 @@ export const DoctorDashboard: React.FC = () => {
   const [prescriptionInstructions, setPrescriptionInstructions] = useState('');
   const [followUpDate, setFollowUpDate] = useState('');
   const [rxSuccess, setRxSuccess] = useState<string | null>(null);
+  const [rxError, setRxError] = useState<string | null>(null);
 
   // Doctor Profile Query
   const { data: doctorProfile } = useQuery<Doctor>({
@@ -89,6 +90,7 @@ export const DoctorDashboard: React.FC = () => {
     mutationFn: (body: any) => api.post('/prescriptions', body),
     onSuccess: () => {
       setRxSuccess('Prescription issued successfully and added to patient medication schedule.');
+      setRxError(null);
       setTimeout(() => {
         setRxSuccess(null);
         setActiveConsultationAppt(null);
@@ -96,7 +98,7 @@ export const DoctorDashboard: React.FC = () => {
       }, 1800);
     },
     onError: (err: any) => {
-      alert(err.message || 'Failed to create prescription.');
+      setRxError(err.message || 'Failed to create prescription.');
     },
   });
 
@@ -361,6 +363,12 @@ export const DoctorDashboard: React.FC = () => {
           </div>
         ) : (
           <form onSubmit={handlePrescriptionSubmit} className="space-y-4">
+            {rxError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 text-brand-error text-xs rounded-xl flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{rxError}</span>
+              </div>
+            )}
             <div className="p-3 bg-brand-panel rounded-xl text-xs space-y-1">
               <div>
                 <span className="font-semibold text-brand-navy">Patient Allergies:</span>{' '}

@@ -46,6 +46,8 @@ export const ReportsPage: React.FC = () => {
     Array<{ testName: string; numericValue: string; unit: string; min: string; max: string }>
   >([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [pageError, setPageError] = useState<string | null>(null);
+  const [compareError, setCompareError] = useState<string | null>(null);
 
   // Query patient reports
   const { data: reports = [], isLoading } = useQuery<MedicalReport[]>({
@@ -61,21 +63,7 @@ export const ReportsPage: React.FC = () => {
 
   // Upload Mutation
   const uploadMutation = useMutation({
-    mutationFn: async (formData: FormData) => {
-      const token = getToken();
-      const res = await fetch('/api/reports/upload', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.message || 'Upload failed');
-      }
-      return res.json();
-    },
+    mutationFn: (formData: FormData) => api.post<any>('/reports/upload', formData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['medical-reports'] });
       queryClient.invalidateQueries({ queryKey: ['medical-reports-all-lab'] });
@@ -95,9 +83,10 @@ export const ReportsPage: React.FC = () => {
       api.post<ReportComparisonResult>('/reports/compare', body),
     onSuccess: (data) => {
       setComparisonResult(data);
+      setCompareError(null);
     },
     onError: (err: any) => {
-      alert(err.message || 'Comparison failed.');
+      setCompareError(err.message || 'Comparison failed.');
     },
   });
 
@@ -167,19 +156,21 @@ export const ReportsPage: React.FC = () => {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (err: any) {
-      alert(err.message || 'Download permission denied or file not found.');
+      setPageError(err.message || 'Download permission denied or file not found.');
+      setTimeout(() => setPageError(null), 5000);
     }
   };
 
   const handleTriggerCompare = () => {
     if (!olderReportId || !newerReportId) {
-      alert('Please select two laboratory reports to compare.');
+      setCompareError('Please select two laboratory reports to compare.');
       return;
     }
     if (olderReportId === newerReportId) {
-      alert('Please choose two distinct reports to compare.');
+      setCompareError('Please choose two distinct reports to compare.');
       return;
     }
+    setCompareError(null);
     compareMutation.mutate({ olderReportId, newerReportId });
   };
 
@@ -566,6 +557,13 @@ export const ReportsPage: React.FC = () => {
                 </option>
               ))}
             </Select>
+
+            {compareError && (
+              <div className="sm:col-span-2 p-3 rounded-lg bg-rose-50 border border-rose-200 text-brand-error text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{compareError}</span>
+              </div>
+            )}
 
             <div className="sm:col-span-2 flex justify-end">
               <Button

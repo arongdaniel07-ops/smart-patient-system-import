@@ -17,9 +17,33 @@ public class JwtTokenProvider {
     private final long expirationMs;
 
     public JwtTokenProvider(
-            @Value("${app.jwt.secret:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}") String secret,
-            @Value("${app.jwt.expiration-ms:86400000}") long expirationMs) {
-        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+            @Value("${app.jwt.secret:}") String secret,
+            @Value("${app.jwt.expiration-ms:86400000}") long expirationMs,
+            @Value("${spring.profiles.active:local}") String activeProfile) {
+
+        if (secret == null || secret.trim().isEmpty()) {
+            throw new IllegalStateException(
+                "CRITICAL SECURITY CONFIGURATION ERROR: JWT_SECRET environment variable is missing. " +
+                "A secure 256-bit+ secret key must be configured in production."
+            );
+        }
+
+        boolean isProduction = "prod".equalsIgnoreCase(activeProfile) || "production".equalsIgnoreCase(activeProfile);
+        if (isProduction && (secret.contains("dev-only") || secret.length() < 32)) {
+            throw new IllegalStateException(
+                "CRITICAL SECURITY CONFIGURATION ERROR: Insecure or default JWT secret detected in production profile. " +
+                "Please configure a strong, random JWT_SECRET with at least 256 bits (32+ characters) in your hosting environment."
+            );
+        }
+
+        byte[] secretBytes = secret.getBytes(StandardCharsets.UTF_8);
+        if (secretBytes.length < 32) {
+            throw new IllegalStateException(
+                "JWT secret key is too short: must be at least 256 bits (32 bytes). Current length is " + secretBytes.length + " bytes."
+            );
+        }
+
+        this.key = Keys.hmacShaKeyFor(secretBytes);
         this.expirationMs = expirationMs;
     }
 

@@ -1,15 +1,17 @@
 server:
-  port: 8080
+  port: ${PORT:8080}
   servlet:
     context-path: /
 
 spring:
   application:
     name: smart-patient-backend
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/smart_patient_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
+    url: ${SPRING_DATASOURCE_URL:${DB_URL:${DATABASE_URL:jdbc:mysql://localhost:3306/smart_patient_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}}}
+    username: ${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:${MYSQLUSER:root}}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:${MYSQLPASSWORD:}}}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
@@ -27,15 +29,14 @@ spring:
     serialization:
       fail-on-empty-beans: false
 
-
 app:
   jwt:
-    secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+    secret: ${JWT_SECRET:dev-only-local-secret-32-bytes-secure-for-testing-pblcst304}
     expiration-ms: 86400000 # 24 hours
   storage:
     upload-dir: ${APP_UPLOAD_DIR:./storage/uploads}
   cors:
-    allowed-origins: ${APP_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173}
+    allowed-origins: ${APP_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,https://smart-patient.vercel.app}
 
 management:
   endpoints:

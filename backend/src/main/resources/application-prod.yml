@@ -1,0 +1,10 @@
+# =============================================================================
+# SMART PATIENT — PRODUCTION PROFILE CONFIGURATION
+# Activated in cloud deployments when SPRING_PROFILES_ACTIVE=prod
+# =============================================================================
+
+app:
+  jwt:
+    # In production, JWT_SECRET must be explicitly provided via environment variable.
+    # Startup will fail immediately if this variable is missing or insecure.
+    secret: ${JWT_SECRET:}

@@ -21,6 +21,7 @@ import { Badge } from '../../components/ui/Badge';
 export const MedicinePage: React.FC = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'today' | 'prescriptions' | 'history'>('today');
+  const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Today's Doses Query
   const { data: todayDoses = [], isLoading: isTodayLoading } = useQuery<MedicineSchedule[]>({
@@ -44,14 +45,23 @@ export const MedicinePage: React.FC = () => {
   const updateStatusMutation = useMutation({
     mutationFn: ({ scheduleId, status }: { scheduleId: number; status: DoseStatus }) =>
       api.post<MedicineSchedule>(`/medicine-schedules/${scheduleId}/status`, { status }),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['medicine-schedules-today'] });
       queryClient.invalidateQueries({ queryKey: ['medicine-summary'] });
       queryClient.invalidateQueries({ queryKey: ['patient-dashboard-summary'] });
       queryClient.invalidateQueries({ queryKey: ['patient-timeline'] });
+      setActionMessage({
+        type: 'success',
+        text: `Dose recorded as ${variables.status.toLowerCase()} successfully.`
+      });
+      setTimeout(() => setActionMessage(null), 3000);
     },
     onError: (err: any) => {
-      alert(err.message || 'Failed to update dose status.');
+      setActionMessage({
+        type: 'error',
+        text: err.message || 'Failed to update dose status.'
+      });
+      setTimeout(() => setActionMessage(null), 4000);
     },
   });
 
@@ -97,6 +107,23 @@ export const MedicinePage: React.FC = () => {
           </div>
         </div>
       </Card>
+
+      {actionMessage && (
+        <div
+          className={`p-3.5 rounded-xl border text-xs flex items-center gap-2 ${
+            actionMessage.type === 'success'
+              ? 'bg-emerald-50 border-emerald-200 text-brand-success'
+              : 'bg-rose-50 border-rose-200 text-brand-error'
+          }`}
+        >
+          {actionMessage.type === 'success' ? (
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+          ) : (
+            <AlertCircle className="w-4 h-4 shrink-0" />
+          )}
+          <span>{actionMessage.text}</span>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex items-center space-x-2 border-b border-brand-border pb-2">

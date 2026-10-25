@@ -50,8 +50,10 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Public authentication and discovery endpoints
-                .requestMatchers("/api/auth/**").permitAll()
+                // Public authentication, discovery, and health check endpoints
+                .requestMatchers("/", "/health", "/api/health").permitAll()
+                .requestMatchers("/api/auth/**", "/api/login", "/api/register").permitAll()
+
                 .requestMatchers(HttpMethod.GET, "/api/hospitals/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/doctors").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/doctors/{id:[0-9]+}").permitAll()
