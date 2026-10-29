@@ -31,7 +31,7 @@ spring:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:dev-only-local-secret-32-bytes-secure-for-testing-pblcst304}
+    secret: ${JWT_SECRET}
     expiration-ms: 86400000 # 24 hours
   storage:
     upload-dir: ${APP_UPLOAD_DIR:./storage/uploads}
